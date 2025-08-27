@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>推播通知管理 - 後台管理系統</title>
+<style>
+  :root{
+    --Color-Neutral-solid-Black-100:#F3F5F8;
+    --Color-Neutral-text-Gray-100:#2A2B2B;
+    --Color-Neutral-solid-Black-200:#D9DBDE;
+    --Color-Primary-Dark:#1886C9;
+    --Color-Neutral-text-Gray-60:rgba(42,43,43,.6);
+    --Color-Neutral-text-Pi-White:#fff;
+    --Color-Neutral-text-Gray-80:rgba(42,43,43,.8);
+    --Color-Neutral-solid-Black-700-Pi-Black:#4E4E56;
+    --Color-Primary-Primary-Pi-Blue:#1DA7FC;
+    --Color-Primary-Light:#83CEFC;
+    --Color-Primary-Light-50:rgba(225,241,251,.8);
+    --Color-Neutral-solid-Black-300:#C0C2C4;
+    --Color-Highlight-Yellow: #FFBF56;
+    --CardShadow:0 2px 8px 1px rgba(54,53,51,.10);
+    --Radius:20px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--Color-Neutral-solid-Black-100);font-family:'PingFang TC','Helvetica Neue','Microsoft JhengHei',sans-serif;color:var(--Color-Neutral-text-Gray-100)}
+  .header{position:fixed;inset:0 0 auto 0;height:80px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:#fff;border-bottom:1px solid #F3F5F8;z-index:1000}
+  .main-content{margin-top:80px;padding:32px 40px}
+  h1,h2,h3,h4{margin:0;padding:0;font-weight:500}
+  h1{margin-bottom:12px;font-size:28px}
+  h2{font-size:28px;margin-bottom:16px;}
+  h3{font-size:18px;margin-bottom:16px; color: var(--Color-Neutral-text-Gray-100)}
+
+  /* --- Layout & Containers --- */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .card{background:#fff;box-shadow:var(--CardShadow);border-radius:var(--Radius);padding:24px 40px;margin-bottom:24px}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  
+  /* --- Navigation --- */
+  .tab-nav{height:64px;display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--Color-Neutral-solid-Black-200);margin-bottom:32px}
+  .tab-link{padding:8px 12px;border-bottom:3px solid transparent;cursor:pointer}
+  .tab-link div{font-size:20px;line-height:30px;font-weight:500;color:var(--Color-Neutral-text-Gray-60)}
+  .tab-link.active{border-bottom-color:var(--Color-Primary-Dark)}
+  .tab-link.active div{color:var(--Color-Neutral-text-Gray-100)}
+  .sub-tab-nav{display:flex;gap:16px;margin-bottom:16px}
+  .sub-tab-btn{padding:8px 24px;border-radius:30px;border:none;background:var(--Color-Neutral-solid-Black-300);color:#fff;font-size:16px;font-weight:500;cursor:pointer}
+  .sub-tab-btn.active{background:var(--Color-Neutral-solid-Black-700-Pi-Black)}
+
+  /* --- Forms --- */
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:16px 24px}
+  .form-section{border-top:1px solid #F3F5F8;padding-top:24px;margin-top:24px;}
+  .form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
+  .form-group[data-full-width="true"] { grid-column: 1 / -1; }
+  .form-group label{font-size:14px;color:var(--Color-Neutral-text-Gray-80);display:flex;align-items:center;gap:4px;}
+  .form-group .note{font-size:12px;font-weight:400;color:#8E9091;}
+  .form-group input, .form-group select, .form-group textarea{
+    width:100%;
+    height:56px;
+    border:none;
+    border-radius:5px;
+    padding:12px;
+    background:var(--Color-Neutral-solid-Black-100);
+    font-size:16px;
+    font-family:inherit;
+  }
+  .form-group textarea{min-height:120px;resize:vertical;}
+  .form-group textarea.short{min-height:56px;height:56px;}
+  .choice-group{display:flex;flex-wrap:wrap;gap:24px;align-items:center;}
+  .choice-group label{display:flex;align-items:center;gap:8px;font-size:16px;cursor:pointer;}
+  .choice-group input[type="radio"], .choice-group input[type="checkbox"]{width:18px;height:18px;}
+  .form-actions{display:flex;gap:16px;justify-content:flex-end;margin-top:24px;}
+  .form-row {display:flex;gap:24px;align-items:flex-start;}
+  .form-row .form-group {margin-bottom: 0;}
+  .form-row .form-group:first-child {flex-shrink: 0;}
+  .form-row .form-group:last-child {flex: 1;}
+
+  /* --- Custom Select Dropdown Style --- */
+  .select-wrapper {
+    position: relative;
+    width: 100%;
+    height: 56px;
+    background: var(--Color-Neutral-solid-Black-100);
+    border-radius: 5px;
+  }
+  .select-wrapper select,
+  .select-wrapper input {
+    width: 100%;
+    height: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    color: var(--Color-Neutral-text-Gray-60);
+    border: none;
+    background: transparent;
+    padding: 0 12px;
+    font-size: 16px;
+    font-family: inherit;
+    position: relative;
+    z-index: 1;
+  }
+  .select-wrapper select.has-value,
+  .select-wrapper input.has-value {color: var(--Color-Neutral-text-Gray-100);}
+  .select-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M8 10L12 14L16 10' stroke='%234E4E56' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A");
+    pointer-events: none;
+    z-index: 2;
+  }
+  /* Hide the native calendar icon but keep it clickable */
+  .select-wrapper input::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    right:0;
+    top:0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  
+  /* --- Search Criteria Section --- */
+  .search-criteria { display: flex; flex-direction: column; gap: 16px; }
+  .search-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; }
+  .search-row .form-group { margin-bottom: 0; flex: 1; min-width: 280px; }
+  .date-range-separator { padding: 0 12px; height: 56px; display: flex; align-items: center; font-size: 28px; font-weight:500; color: var(--Color-Neutral-solid-Black-700-Pi-Black); }
+
+  /* --- Table --- */
+  .table-wrap{overflow-x:auto}
+  .pi-table{width:100%;border-collapse:separate;border-spacing:0;min-width:2200px;}
+  .pi-table th, .pi-table td{padding:12px 8px;border-bottom:1px solid var(--Color-Neutral-solid-Black-200);text-align:center;font-size:14px;vertical-align:middle;white-space:normal;}
+  .pi-table th{background:var(--Color-Primary-Light-50);color:var(--Color-Neutral-text-Gray-100);font-weight:500;}
+  .pi-table td .text-link{color:var(--Color-Primary-Dark);text-decoration:underline;cursor:pointer;margin: 0 4px;}
+  .pi-table .status-tag{
+    display:inline-flex;align-items:center;justify-content:center;height:22px;min-width:70px;border-radius:30px;color:#fff;font-size:12px;font-weight:500;padding:0 10px
+  }
+  .status-draft { background: var(--Color-Neutral-solid-Black-300); }
+  .status-review { background: var(--Color-Highlight-Yellow); }
+  .status-scheduled { background: var(--Color-Primary-Light); }
+  .status-sent { background: var(--Color-Primary-Primary-Pi-Blue); }
+  .status-failed, .status-cancelled { background: #ef4444; }
+
+  /* --- Buttons --- */
+  .btn{height:46px;padding:11px 20px;border-radius:8px;font-size:16px;font-weight:500;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+  .btn-primary{background:var(--Color-Primary-Primary-Pi-Blue);color:#fff}
+  .btn-outline{background:transparent;color:var(--Color-Primary-Primary-Pi-Blue);outline:1px solid var(--Color-Primary-Primary-Pi-Blue)}
+  .btn-ghost{background:transparent;color:var(--Color-Neutral-text-Gray-100);outline:1px solid var(--Color-Neutral-solid-Black-200)}
+  .card-header .btn { height: 40px; }
+
+  /* --- Modal --- */
+  .mask{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.25);z-index:9999}
+  .modal{width:min(900px,95vw);background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden}
+  .modal-hd,.modal-ft{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--Color-Neutral-solid-Black-200)}
+  .modal-ft{border-bottom:none;border-top:1px solid var(--Color-Neutral-solid-Black-200);gap:10px;justify-content:flex-end}
+  .modal-bd{padding:16px; max-height: 70vh; overflow-y: auto;}
+  .modal-bd .form-grid { grid-template-columns: 1fr; }
+  .modal[data-size="small"] { width: min(500px, 95vw); }
+  .modal[data-size="small"] .modal-bd .form-grid { grid-template-columns: 1fr; }
+
+
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div style="display:flex;align-items:center;gap:32px">
+    <img alt="Logo" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjY0IiB2aWV3Qm94PSIwIDAgMTgwIDY0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiPjxwYXRoIGQ9Ik03LjA2NjY3IDE4LjkzMzNINDYuOTMzM1Y1OC44SDcuMDY2NjdWMTguOTMzM1oiIGZpbGw9IiMxREE3RkMiLz48L2c+PGRlZnMvPjwvc3ZnPg==" />
+    <div style="color:var(--Color-Neutral-text-Gray-60);font-size:28px;font-weight:500">後台管理系統</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:24px">
+    <div style="width:45px;height:45px;background:#F3F5F8;border-radius:50%;position:relative">
+      <img src="https://placehold.co/38x38/BDBDBD/FFFFFF/?text=U" alt="User" style="width:38px;height:38px;border-radius:50%;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)" />
+    </div>
+  </div>
+</header>
+
+<main class="main-content">
+  <h1>發送設定</h1>
+  <nav class="tab-nav" id="main-tabs">
+    <div class="tab-link active" data-tab="push-history"><div>推播通知管理</div></div>
+    <div class="tab-link" data-tab="list-management"><div>發送名單管理</div></div>
+    <div class="tab-link" data-tab="category-management"><div>推播分類</div></div>
+    <div class="tab-link" data-tab="approval-management"><div>審核項目</div></div>
+  </nav>
+  
+  <div id="push-history" class="tab-content active">
+    <div class="card">
+      <form>
+        <div style="align-self: stretch; flex-direction: column; justify-content: flex-start; align-items: flex-start; gap: 16px; display: flex">
+          <h3 style="margin: 0; align-self: stretch; color: #2A2B2B; font-size: 18px; font-family: 'PingFang TC', sans-serif; font-weight: 500; line-height: 28px;">搜尋條件</h3>
+          <div style="align-self: stretch; display: flex; flex-wrap: wrap; gap: 16px 24px;">
+            
+            <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 4px;">
+              <label style="color: rgba(42, 43, 43, 0.80); font-size: 14px;">推播類型</label>
+              <div class="select-wrapper">
+                <select class="input">
+                  <option value="all">全部類型</option>
+                  <option value="general">一般通知</option>
+                  <option value="event">活動消息</option>
+                  <option value="maintenance">維護公告</option>
+                </select>
+              </div>
+            </div>
+            
+            <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 4px;">
+              <label style="color: rgba(42, 43, 43, 0.80); font-size: 14px;">發送名單</label>
+              <div class="select-wrapper">
+                <select class="input">
+                    <option value="all">全部名單</option>
+                    <option value="new_users">新用戶名單</option>
+                    <option value="vip_users">VIP用戶</option>
+                    <option value="complain_users">客訴名單</option>
+                </select>
+              </div>
+            </div>
+            
+            <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 4px;">
+              <label style="color: rgba(42, 43, 43, 0.80); font-size: 14px;">執行狀態</label>
+              <div class="select-wrapper">
+                <select class="input">
+                  <option value="all">全部狀態</option>
+                  <option value="review">審核中</option>
+                  <option value="scheduled">即將發送</option>
+                  <option value="sent">發送成功</option>
+                  <option value="failed">發送失敗</option>
+                  <option value="cancelled">取消發送</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div style="align-self: stretch; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 8px;">
+           <div style="width: 500px; display: flex; flex-direction: column; gap: 4px;">
+              <label style="color: rgba(42, 43, 43, 0.80); font-size: 14px;">刊登日期區間</label>
+              <div class="select-wrapper">
+                <input type="datetime-local" class="input" id="search-start-date">
+              </div>
+            </div>
+            <div style="color: #4E4E56; font-size: 28px; line-height: 56px; font-weight: 500;">~</div>
+           <div style="width: 500px; display: flex; flex-direction: column; gap: 4px;">
+              <label style="visibility: hidden; color: rgba(42, 43, 43, 0.80); font-size: 14px;">結束日期</label> <div class="select-wrapper">
+                 <input type="datetime-local" class="input" id="search-end-date">
+              </div>
+            </div>
+          </div>
+        </div>
+       <div style="text-align: right; margin-top: 16px;">
+          <button class="btn btn-primary" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 21L16.65 16.65" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>查詢</div>
+          </button>
+        </div>
+      </form>
+    </div>
+    <section class="card">
+        <div class="card-header">
+            <h2>推播紀錄</h2>
+            <button type="button" class="btn btn-outline" id="btnNewPush">新增推播通知</button>
+        </div>
+        <div class="table-wrap">
+            <table class="pi-table">
+                <thead>
+                    <tr>
+                        <th>推播 ID</th>
+                        <th>推播類型</th>
+                        <th>執行狀態</th>
+                        <th>推播標題</th>
+                        <th>推播描述</th>
+                        <th>發送名單</th>
+                        <th>限制發送名單</th>
+                        <th>刊登日期</th>
+                        <th>實際執行日期</th>
+                        <th>建立日期</th>
+                        <th>建立人員</th>
+                        <th>審核完成日期</th>
+                        <th>審核人員</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body"></tbody>
+            </table>
+        </div>
+    </section>
+  </div>
+  
+  <div id="list-management" class="tab-content">
+    <section class="card">
+        <h2>系統撈取名單</h2>
+        <div class="table-wrap">
+            <table class="pi-table" style="min-width:auto;">
+                <thead>
+                    <tr>
+                        <th>名單名稱</th>
+                        <th>用戶數量</th>
+                        <th>簡述</th>
+                        <th>最近撈取日期</th>
+                        <th>下載 UID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>新用戶名單</td>
+                        <td>1,250</td>
+                        <td>30日內註冊之新用戶</td>
+                        <td>2025-08-26 00:00:00</td>
+                        <td><button type="button" class="btn btn-ghost">下載</button></td>
+                    </tr>
+                     <tr>
+                        <td>VIP用戶</td>
+                        <td>5,400</td>
+                        <td>年度消費達標用戶</td>
+                        <td>2025-08-26 08:00:00</td>
+                        <td><button type="button" class="btn btn-ghost">下載</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="card">
+        <div class="card-header">
+            <h2>手動設定名單</h2>
+            <button type="button" class="btn btn-outline" id="btn-add-manual-list">新增名單</button>
+        </div>
+        <div class="table-wrap">
+            <table class="pi-table" style="min-width:auto;">
+                <thead>
+                    <tr>
+                        <th>名單名稱</th>
+                        <th>用戶數量</th>
+                        <th>簡述</th>
+                        <th>最近編輯日期</th>
+                        <th>下載 UID</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="manual-lists-table-body">
+                     <tr>
+                        <td>客訴名單</td>
+                        <td>88</td>
+                        <td>手動維護的客訴用戶</td>
+                        <td>2025-08-25 15:30:00</td>
+                        <td><button type="button" class="btn btn-ghost">下載</button></td>
+                        <td><a class="text-link btn-edit-manual-list" data-list-name="客訴名單">編輯</a></td>
+                    </tr>
+                     <tr>
+                        <td>8月行銷活動A參與者</td>
+                        <td>350</td>
+                        <td>參與指定行銷活動之用戶 (UID 上傳)</td>
+                        <td>2025-08-24 10:00:00</td>
+                        <td><button type="button" class="btn btn-ghost">下載</button></td>
+                        <td><a class="text-link btn-edit-manual-list" data-list-name="8月行銷活動A參與者">編輯</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+  </div>
+
+  <div id="category-management" class="tab-content">
+    <section class="card">
+      <h2>新增分類</h2>
+      <form id="new-category-form" class="form-grid" style="grid-template-columns: 1fr 1fr; align-items: flex-end;">
+        <div class="form-group">
+          <label>主分類</label>
+           <div class="select-wrapper">
+            <select name="cat_main_type" class="input" required>
+              <option value="" disabled selected>請選擇主分類</option>
+              <option value="一般通知">一般通知</option>
+              <option value="活動消息">活動消息</option>
+              <option value="維護公告">維護公告</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>項目名稱</label>
+          <input type="text" name="cat_name" class="input" placeholder="例如: 信用卡活動" required>
+        </div>
+        <div class="form-actions" style="grid-column: 1 / -1;">
+            <button type="submit" class="btn btn-primary">新增分類</button>
+        </div>
+      </form>
+    </section>
+    <section class="card">
+        <h2>分類列表</h2>
+        <div class="table-wrap">
+            <table class="pi-table" style="min-width:auto;">
+                <thead>
+                    <tr>
+                        <th>主分類</th>
+                        <th>分類 Type</th>
+                        <th>項目名稱</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="category-table-body"></tbody>
+            </table>
+        </div>
+    </section>
+  </div>
+
+  <div id="approval-management" class="tab-content">
+     <section class="card">
+        <h2>審核推播列表</h2>
+        <div class="table-wrap">
+            <table class="pi-table" style="min-width: 1200px;">
+                <thead>
+                    <tr>
+                        <th>推播類型</th>
+                        <th>執行狀態</th>
+                        <th>推播標題</th>
+                        <th>刊登日期</th>
+                        <th>建立日期</th>
+                        <th>建立人員</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>一般通知</td>
+                        <td><span class="status-tag status-review">審核中</span></td>
+                        <td>Pi 拍錢包 App 全新升級！</td>
+                        <td>2025-08-26 15:00:00</td>
+                        <td>2025-08-26 14:30:00</td>
+                        <td>Admin</td>
+                        <td><a class="text-link">審核通過</a> <a class="text-link">查看詳情</a></td>
+                    </tr>
+                    <tr>
+                        <td>活動消息</td>
+                        <td><span class="status-tag status-scheduled">待發送</span></td>
+                        <td>週末美食節，享受5% P幣回饋！</td>
+                        <td>2025-08-29 12:00:00</td>
+                        <td>2025-08-26 10:00:00</td>
+                        <td>Marketing</td>
+                        <td><a class="text-link">取消發送</a> <a class="text-link">查看詳情</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+  </div>
+</main>
+
+<div class="mask" id="push-dialog">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-hd">
+      <strong id="dialog-title">新增推播通知</strong>
+      <button type="button" class="btn btn-ghost" data-action="close-dialog">關閉</button>
+    </div>
+    <div class="modal-bd">
+        <form id="push-form-modal">
+            <div class="sub-tab-nav" id="push-type-tabs-modal">
+                <button type="button" class="sub-tab-btn active" data-type="general">一般通知</button>
+                <button type="button" class="sub-tab-btn" data-type="maintenance">維護公告</button>
+                <button type="button" class="sub-tab-btn" data-type="event">活動消息</button>
+            </div>
+            <input type="hidden" name="push-type" value="general">
+            <div class="form-section" id="audience-section-modal">
+                <h3>發送對象</h3>
+                <div class="choice-group" role="radiogroup" aria-label="推播名單">
+                    <label><input type="radio" name="audience_type" value="all" checked> 全體</label>
+                    <label><input type="radio" name="audience_type" value="group"> 群體</label>
+                    <label><input type="radio" name="audience_type" value="individual"> 個別</label>
+                </div>
+                <div class="form-grid" style="margin-top:16px; grid-template-columns: 1fr 1fr;">
+                    <div class="form-group" id="audience-group-field-modal" style="display:none;">
+                        <label>發送名單 <span class="note">[限勾選群體填寫]</span></label>
+                        <div class="select-wrapper">
+                            <select name="audience_list" id="audience_list_modal" class="input">
+                                <option value="" selected>請選擇欲發送名單</option>
+                                <option value="new_users">新用戶名單</option>
+                                <option value="vip_users">VIP用戶</option>
+                            </select>
+                        </div>
+                        <div class="note">僅推播給這些用戶，可在「名單設定」功能中設定（ex: 新用戶名單）</div>
+                    </div>
+                    <div class="form-group" id="audience-individual-field-modal" style="display:none;">
+                        <label>用戶 ID <span class="note">[限勾選個別填寫]（多組請用 , 隔開）</span></label>
+                        <input type="text" name="audience_ids" id="audience_ids_modal" class="input" placeholder="ex: UP14528VSUQH4T7S,..." inputmode="text" pattern="^[A-Za-z0-9]+(,[A-Za-z0-9]+)*$">
+                    </div>
+                    <div class="form-group" data-full-width="true">
+                        <label>限制發送名單</label>
+                        <div class="select-wrapper">
+                            <select name="exclude_list" id="exclude_list_modal" class="input">
+                                <option value="" selected>無</option>
+                                <option value="complain_users">客訴名單</option>
+                            </select>
+                        </div>
+                        <div class="note">不發送推播給這些用戶，可在「名單設定」功能中設定（ex: 客訴名單）</div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>推播內容</h3>
+                 <div class="form-group" style="max-width: 400px;">
+                    <label>推播分類<span class="note">(必填)</span></label>
+                    <div class="select-wrapper">
+                        <select name="push_category" id="push-category-select-modal" class="input">
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group" data-full-width="true">
+                    <div class="form-row" style="gap: 24px;">
+                        <div class="form-group" style="width: 50%;">
+                            <label>推播標題 <span class="note">(必填，最多30字)</span></label>
+                            <input type="text" name="push_title" class="input" maxlength="30" placeholder="請輸入至多 30 字標題" required>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>推播描述 <span class="note">(必填，最多120字)</span></label>
+                            <textarea name="push_description" class="input short" maxlength="120" placeholder="請輸入至多 120 字描述" required></textarea>
+                        </div>
+                    </div>
+                </div>
+                 <div class="form-group" data-full-width="true">
+                    <label>完整推播內容 <span class="note">(若無填寫，僅顯示推播描述之文字)</span></label>
+                    <textarea name="push_content" maxlength="2000" placeholder="請輸入至多 2000 字內容"></textarea>
+                </div>
+                <div class="form-group" data-full-width="true">
+                    <label>推播簡圖 <span class="note">（顯示於通知中心總覽頁）</span></label>
+                    <div class="form-row">
+                         <input type="text" id="push-thumbnail-filename-modal" class="input" placeholder="請上傳推播簡圖，非必填" readonly style="flex:1;">
+                         <button type="button" class="btn btn-ghost" onclick="document.getElementById('push-thumbnail-upload-modal').click();" style="flex-shrink:0;">選取檔案</button>
+                         <input type="file" name="push_thumbnail" id="push-thumbnail-upload-modal" accept="image/*" style="display:none;">
+                    </div>
+                </div>
+                <div class="form-group" data-full-width="true">
+                    <label>推播附圖 <span class="note">（顯示於個別通知內頁）</span></label>
+                    <div class="form-row">
+                         <input type="text" id="push-image-filename-modal" class="input" placeholder="請上傳推播圖片，非必填" readonly style="flex:1;">
+                         <button type="button" class="btn btn-ghost" onclick="document.getElementById('push-image-upload-modal').click();" style="flex-shrink:0;">選取檔案</button>
+                         <input type="file" name="push_image" id="push-image-upload-modal" accept="image/*" style="display:none;">
+                    </div>
+                </div>
+            </div>
+            <div class="form-section">
+                <h3>導連入口</h3>
+                <div class="choice-group" id="link-options-modal">
+                    <label><input type="radio" name="link_option" value="0" checked> 無需導連</label>
+                    <label><input type="radio" name="link_option" value="1"> 1 個轉導頁</label>
+                    <label><input type="radio" name="link_option" value="2"> 2 個轉導頁</label>
+                </div>
+                 <div class="form-grid" id="link-fields-container-modal" style="margin-top:16px; grid-template-columns: 1fr 1fr; display:none;">
+                    <div class="form-group" id="link-field-1-url-modal">
+                        <label>導轉入口 A 網址</label>
+                        <input type="url" name="link_url_1" class="input" placeholder="https://">
+                    </div>
+                    <div class="form-group" id="link-field-1-text-modal">
+                        <label>按鈕文案</label>
+                        <input type="text" name="link_text_1" class="input" placeholder="例如：點我查看" maxlength="20">
+                    </div>
+                    <div class="form-group" id="link-field-2-url-modal">
+                        <label>導轉入口 B 網址</label>
+                        <input type="url" name="link_url_2" class="input" placeholder="https://">
+                    </div>
+                    <div class="form-group" id="link-field-2-text-modal">
+                        <label>按鈕文案</label>
+                        <input type="text" name="link_text_2" class="input" placeholder="例如：了解更多" maxlength="20">
+                    </div>
+                </div>
+                 </div>
+             <div class="form-section">
+                <h3>發送時間</h3>
+                <div class="choice-group">
+                    <label><input type="radio" name="time_option" value="now" checked> 立即發送</label>
+                    <label><input type="radio" name="time_option" value="schedule"> 預約發送</label>
+                </div>
+                <div class="form-grid" style="margin-top:16px; max-width: 400px;">
+                    <div class="form-group" id="schedule-field-modal" style="display:none;">
+                        <label>預約發送時間</label>
+                        <input type="datetime-local" name="schedule_time" class="input">
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-ft">
+        <button type="button" class="btn btn-ghost" id="dialog-preview-btn">預覽</button>
+        <button type="submit" class="btn btn-primary" id="dialog-submit-btn">送出審核</button>
+    </div>
+  </div>
+</div>
+
+<div class="mask" id="manual-list-dialog">
+  <div class="modal" data-size="small" role="dialog" aria-modal="true">
+    <div class="modal-hd">
+      <strong id="manual-list-dialog-title">新增手動名單</strong>
+      <button type="button" class="btn btn-ghost" data-action="close-dialog">關閉</button>
+    </div>
+    <div class="modal-bd">
+        <form id="manual-list-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>名單名稱</label>
+                    <input type="text" name="manual_list_name" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label>簡述</label>
+                    <textarea name="manual_list_desc" class="input short"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>上傳用戶 UID</label>
+                     <div class="form-row">
+                         <input type="text" id="manual-uid-filename" class="input" placeholder="上傳 .txt 或 .csv 檔案" readonly>
+                         <button type="button" class="btn btn-ghost" onclick="document.getElementById('manual-uid-upload').click();" style="flex-shrink:0;">選取檔案</button>
+                         <input type="file" name="manual_uid_file" id="manual-uid-upload" accept=".txt,.csv" style="display:none;" required>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-ft">
+        <button type="button" class="btn btn-ghost" data-action="close-dialog">取消</button>
+        <button type="submit" class="btn btn-primary" id="dialog-submit-btn">儲存</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Mock Data ---
+    let pushCategories = [
+        { main: '一般通知', id: 20, name: '通知' },
+        { main: '維護公告', id: 21, name: '維護' },
+        { main: '一般通知', id: 22, name: '帳號' },
+        { main: '一般通知', id: 23, name: '交易' },
+        { main: '一般通知', id: 24, 'name': '繳費結果' },
+        { main: '一般通知', id: 32, 'name': '點數' },
+        { main: '活動消息', id: 60, name: '信用卡活動' },
+        { main: '活動消息', id: 61, name: '拍享券活動' },
+    ];
+    
+    const historyData = [
+        { pushId: 'GEN-20250826ABCD', type: '一般通知', status: 'review', title: 'Pi 拍錢包 App 全新升級！', description: '更快速、更安全的支付體驗...', audience: '全會員', exclude: '無', scheduledDate: '2025-08-26 15:00:00', actualDate: null, createdDate: '2025-08-26 14:30:00', creator: 'Admin', approvalDate: null, approver: null },
+        { pushId: 'EVT-20250826EFGH', type: '活動消息', status: 'scheduled', title: '週末美食節，享受5% P幣回饋！', description: '本週末於指定餐廳消費...', audience: 'VIP用戶', exclude: '客訴名單', scheduledDate: '2025-08-29 12:00:00', actualDate: null, createdDate: '2025-08-26 10:00:00', creator: 'Marketing', approvalDate: '2025-08-26 11:00:00', approver: 'Manager' },
+        { pushId: 'MNT-20250825IJKL', type: '維護公告', status: 'sent', title: '系統維護通知 (02:00-04:00)', description: '為提供更優質的服務...', audience: '全會員', exclude: '無', scheduledDate: '2025-08-25 00:00:00', actualDate: '2025-08-25 00:00:05', createdDate: '2025-08-24 18:00:00', creator: 'TechTeam', approvalDate: '2025-08-24 18:30:00', approver: 'Lead' },
+    ];
+
+    // --- Main Tab Navigation ---
+    const mainTabs = document.querySelectorAll('#main-tabs .tab-link');
+    const mainContents = document.querySelectorAll('.main-content > .tab-content');
+    mainTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            mainTabs.forEach(item => item.classList.remove('active'));
+            mainContents.forEach(content => content.classList.remove('active'));
+            tab.classList.add('active');
+            const targetContent = document.getElementById(tab.dataset.tab);
+            if(targetContent) targetContent.classList.add('active');
+        });
+    });
+
+    // --- Generic Dialog (Modal) Logic ---
+    const initDialogs = () => {
+        document.querySelectorAll('[data-action="close-dialog"]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.mask').style.display = 'none';
+            });
+        });
+
+        // Push Notification Dialog
+        const pushDialog = document.getElementById('push-dialog');
+        const btnNewPush = document.getElementById('btnNewPush');
+        if (btnNewPush && pushDialog) {
+            btnNewPush.addEventListener('click', () => {
+                document.getElementById('dialog-title').textContent = '新增推播通知';
+                pushDialog.style.display = 'flex';
+            });
+        }
+
+        // Manual List Dialog
+        const manualListDialog = document.getElementById('manual-list-dialog');
+        const manualListDialogTitle = document.getElementById('manual-list-dialog-title');
+        
+        const openManualListDialog = (isEdit = false, listName = '') => {
+            if (!manualListDialog || !manualListDialogTitle) return;
+            manualListDialogTitle.textContent = isEdit ? `編輯手動名單 (${listName})` : '新增手動名單';
+            document.getElementById('manual-list-form').reset(); // Clear form
+            document.getElementById('manual-uid-filename').value = ''; // Clear filename display
+            manualListDialog.style.display = 'flex';
+        };
+
+        const btnAddManualList = document.getElementById('btn-add-manual-list');
+        if (btnAddManualList) {
+            btnAddManualList.addEventListener('click', () => openManualListDialog(false));
+        }
+        
+        document.querySelectorAll('.btn-edit-manual-list').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const listName = e.target.dataset.listName || '';
+                openManualListDialog(true, listName);
+            });
+        });
+         
+        const manualUidUpload = document.getElementById('manual-uid-upload');
+        const manualUidFilename = document.getElementById('manual-uid-filename');
+        if(manualUidUpload && manualUidFilename){
+            manualUidUpload.addEventListener('change', function() {
+                manualUidFilename.value = this.files.length > 0 ? this.files[0].name : '';
+            });
+        }
+    };
+    initDialogs();
+    
+    // --- Form Interaction Logic ---
+    const initPushForm = (form) => {
+       if (!form) return;
+        const audienceRadios = form.querySelectorAll('input[name="audience_type"]');
+        if (audienceRadios.length > 0) {
+            const groupField = form.querySelector('#audience-group-field-modal');
+            const individualField = form.querySelector('#audience-individual-field-modal');
+            const updateVisibility = () => {
+                const selection = form.querySelector('input[name="audience_type"]:checked').value;
+                if(groupField) groupField.style.display = (selection === 'group') ? 'block' : 'none';
+                if(individualField) individualField.style.display = (selection === 'individual') ? 'block' : 'none';
+            };
+            audienceRadios.forEach(radio => radio.addEventListener('change', updateVisibility));
+            updateVisibility();
+        }
+        
+        const thumbnailUploadInput = form.querySelector('#push-thumbnail-upload-modal');
+        const thumbnailFilenameInput = form.querySelector('#push-thumbnail-filename-modal');
+        if (thumbnailUploadInput && thumbnailFilenameInput) {
+            thumbnailUploadInput.addEventListener('change', function() {
+                thumbnailFilenameInput.value = this.files.length > 0 ? this.files[0].name : '';
+            });
+        }
+        
+        const imageUploadInput = form.querySelector('#push-image-upload-modal');
+        const imageFilenameInput = form.querySelector('#push-image-filename-modal');
+        if (imageUploadInput && imageFilenameInput) {
+            imageUploadInput.addEventListener('change', function() {
+                imageFilenameInput.value = this.files.length > 0 ? this.files[0].name : '';
+            });
+        }
+
+        // ▼▼▼ START: 更新導連入口 JavaScript 邏輯 ▼▼▼
+        const linkRadios = form.querySelectorAll('#link-options-modal input[name="link_option"]');
+        const linkContainer = form.querySelector('#link-fields-container-modal');
+        const link1Url = form.querySelector('#link-field-1-url-modal');
+        const link1Text = form.querySelector('#link-field-1-text-modal');
+        const link2Url = form.querySelector('#link-field-2-url-modal');
+        const link2Text = form.querySelector('#link-field-2-text-modal');
+        const link1TextLabel = link1Text ? link1Text.querySelector('label') : null;
+        const link2TextLabel = link2Text ? link2Text.querySelector('label') : null;
+
+        if (linkRadios.length > 0 && linkContainer) {
+            linkRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    const count = parseInt(e.target.value, 10);
+                    
+                    if (count === 0) {
+                        linkContainer.style.display = 'none';
+                    } else if (count === 1) {
+                        linkContainer.style.display = 'grid';
+                        link1Url.style.display = 'flex';
+                        link1Text.style.display = 'flex';
+                        link2Url.style.display = 'none';
+                        link2Text.style.display = 'none';
+                        if (link1TextLabel) link1TextLabel.textContent = '按鈕文案';
+                    } else if (count === 2) {
+                        linkContainer.style.display = 'grid';
+                        link1Url.style.display = 'flex';
+                        link1Text.style.display = 'flex';
+                        link2Url.style.display = 'flex';
+                        link2Text.style.display = 'flex';
+                        if (link1TextLabel) link1TextLabel.textContent = '左按鈕(A)文案';
+                        if (link2TextLabel) link2TextLabel.textContent = '右按鈕(B)文案';
+                    }
+                });
+            });
+        }
+        // ▲▲▲ END: 更新導連入口 JavaScript 邏輯 ▲▲▲
+
+        const timeRadios = form.querySelectorAll('input[name="time_option"]');
+        const scheduleField = form.querySelector('#schedule-field-modal');
+        if(timeRadios.length > 0) {
+             timeRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    if(scheduleField) scheduleField.style.display = (e.target.value === 'schedule') ? 'block' : 'none';
+                });
+            });
+        }
+    };
+    initPushForm(document.getElementById('push-form-modal'));
+
+    // --- Custom Select/Input Color Logic ---
+    const initInputStyles = () => {
+        document.querySelectorAll('.select-wrapper select, .select-wrapper input').forEach(el => {
+            const updateStyle = () => {
+                el.classList.toggle('has-value', !!el.value);
+            };
+            el.addEventListener('change', updateStyle);
+            if (el.type === 'datetime-local' && el.value) { // Pre-filled dates
+                 el.classList.add('has-value');
+            }
+            updateStyle();
+        });
+    };
+    initInputStyles();
+
+    // --- Search History Logic ---
+    const initHistorySection = () => {
+        const toLocalISOString = date => {
+            if (!date) return '';
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            return (new Date(date - tzoffset)).toISOString().slice(0, 16);
+        };
+        const today = new Date();
+        const thirtyDaysAgo = new Date(new Date().setDate(today.getDate() - 30));
+        document.getElementById('search-start-date').value = toLocalISOString(thirtyDaysAgo);
+        document.getElementById('search-end-date').value = toLocalISOString(today);
+        initInputStyles(); // re-run to style the pre-filled dates
+        
+        const renderHistoryTable = (data) => {
+            const tbody = document.getElementById('history-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = data.map(item => {
+                const statusMap = {
+                    review: { text: '審核中', class: 'status-review' },
+                    scheduled: { text: '即將發送', class: 'status-scheduled' },
+                    sent: { text: '發送成功', class: 'status-sent' },
+                    failed: { text: '發送失敗', class: 'status-failed' },
+                    cancelled: { text: '取消發送', class: 'status-cancelled' },
+                };
+                const statusInfo = statusMap[item.status] || { text: item.status, class: 'status-draft' };
+
+                return `
+                    <tr>
+                        <td><a class="text-link" data-id="${item.pushId}">${item.pushId || '-'}</a></td>
+                        <td>${item.type}</td>
+                        <td><span class="status-tag ${statusInfo.class}">${statusInfo.text}</span></td>
+                        <td title="${item.title}">${item.title}</td>
+                        <td title="${item.description}">${item.description}</td>
+                        <td>${item.audience}</td>
+                        <td>${item.exclude}</td>
+                        <td>${item.scheduledDate || '-'}</td>
+                        <td>${item.actualDate || '-'}</td>
+                        <td>${item.createdDate || '-'}</td>
+                        <td>${item.creator || '-'}</td>
+                        <td>${item.approvalDate || '-'}</td>
+                        <td>${item.approver || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.querySelectorAll('[data-id]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.getElementById('dialog-title').textContent = `編輯推播通知 (${e.target.dataset.id})`;
+                    document.getElementById('push-dialog').style.display = 'flex';
+                });
+            });
+        };
+        renderHistoryTable(historyData);
+    };
+    initHistorySection();
+
+    // --- Category Management Logic ---
+    const initCategorySection = () => {
+        const categoryTableBody = document.getElementById('category-table-body');
+        const pushCategorySelect = document.getElementById('push-category-select-modal');
+
+        const renderCategoryTable = () => {
+            if (!categoryTableBody) return;
+            categoryTableBody.innerHTML = pushCategories.map(cat => `
+                <tr>
+                    <td>${cat.main}</td>
+                    <td>${cat.id}</td>
+                    <td>${cat.name}</td>
+                    <td><a class="text-link">編輯</a></td>
+                </tr>
+            `).join('');
+        };
+        
+        const populateCategorySelect = () => {
+            if (!pushCategorySelect) return;
+            pushCategorySelect.innerHTML = `<option value="" disabled selected>請選擇推播分類/項目</option>` + 
+            pushCategories.map(cat => `<option value="${cat.id}">${cat.id} / ${cat.name}</option>`).join('');
+            initInputStyles();
+        };
+        
+        const newCategoryForm = document.getElementById('new-category-form');
+        if (newCategoryForm) {
+            newCategoryForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const main = e.target.elements.cat_main_type.value;
+                const name = e.target.elements.cat_name.value;
+
+                // Simulate system generating a new unique ID
+                const newId = Math.max(...pushCategories.map(c => c.id)) + 1;
+
+                if (main && name) {
+                    pushCategories.push({ main: main, id: newId, name: name });
+                    renderCategoryTable();
+                    populateCategorySelect();
+                    e.target.reset();
+                    initInputStyles(); // Reset color for the dropdown
+                    alert(`分類已新增！系統編碼為: ${newId}`);
+                } else {
+                    alert('主分類和項目名稱皆不可為空！');
+                }
+            });
+        }
+
+        renderCategoryTable();
+        populateCategorySelect();
+    };
+    initCategorySection();
+});
+</script>
+
+</body>
+</html>
